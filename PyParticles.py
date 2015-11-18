@@ -1,4 +1,6 @@
 import math, random
+import time
+import colorsys
 
 PARTICLE_ELASTICITY = 1 # .9
 MASS_OF_AIR = 0 # .02
@@ -14,6 +16,8 @@ def addVectors((angle1, length1), (angle2, length2)):
 
     return (angle, length)
 
+# I broke this for opposite destruct. If you wish to reinstate it, 
+#  look at the original code, URL is in the header.
 def combine(p1, p2):
     if math.hypot(p1.x - p2.x, p1.y - p2.y) < p1.size + p2.size:
         total_mass = p1.mass + p2.mass
@@ -23,6 +27,16 @@ def combine(p1, p2):
         p1.speed *= (p1.elasticity*p2.elasticity)
         p1.mass += p2.mass
         p1.collide_with = p2
+
+def opposite_destruct(p1, p2):
+    dx = p1.x - p2.x
+    dy = p1.y - p2.y
+    
+    dist = math.hypot(dx, dy)
+    if dist < p1.size + p2.size:
+        if p1.species == -p2.species:
+            p1.destroy = True
+            p2.destroy = True
 
 def collide(p1, p2):
     """ Tests whether two particles overlap
@@ -62,7 +76,7 @@ class Particle:
         self.mass = mass
         self.drag = 1
         self.elasticity = PARTICLE_ELASTICITY
-        self.destroy = 0 #Mark this particle for destruction next round
+        self.destroy = False #Mark this particle for destruction next round
         self.type = 0
         self.species = -1
 
@@ -102,6 +116,19 @@ class Particle:
         self.accelerate((theta- 0.5 * math.pi, force/self.mass))
         other.accelerate((theta+ 0.5 * math.pi, force/other.mass))
 
+    def get_particle_color(self,num_species):
+        #mult = 360/num_species
+        mult = 1.0/num_species
+        h = .5 + mult*self.species
+        print "----------"
+        print "num_species: %f"%(num_species)
+        print "mult: %f"%(mult)
+        print "H! %f"%(h)
+        unscaled = colorsys.hsv_to_rgb(h, .5, .5)
+
+        return (unscaled[0]*255,unscaled[1]*255,unscaled[2]*255)
+        #return (species*mult,100,species*mult)
+
 class Environment:
     """ Defines the boundary of a simulation and its properties """
     
@@ -122,9 +149,14 @@ class Environment:
         'drag': (1, lambda p: p.experienceDrag()),
         'bounce': (1, lambda p: self.bounce(p)),
         'accelerate': (1, lambda p: p.accelerate(self.acceleration)),
+        'react': (2, lambda p1, p2: self.react(p1,p2)),
         'collide': (2, lambda p1, p2: collide(p1, p2)),
         'combine': (2, lambda p1, p2: combine(p1, p2)),
-        'attract': (2, lambda p1, p2: p1.attract(p2))}
+        'attract': (2, lambda p1, p2: p1.attract(p2)),
+        'opposite_destruct': (2, lambda p1, p2: opposite_destruct(p1, p2))}
+
+        self.reaction_rules = {}
+        self.species_count = None
         
     def addFunctions(self, function_list):
         for func in function_list:
@@ -189,6 +221,35 @@ class Environment:
             particle.angle = math.pi - particle.angle
             particle.speed *= self.elasticity
 
+    def react(self, p1, p2):
+        if math.hypot(p1.x - p2.x, p1.y - p2.y) < p1.size + p2.size:
+            a = b = None
+            if (p1.species,p2.species) in self.reaction_rules:
+                a = p1.species
+                b = p2.species
+            if (p2.species,p1.species) in self.reaction_rules:
+                a = p2.species
+                b = p1.species
+
+            if a and b:
+                #print "react!"
+                #P1 becomes our combined molecule. For most purposes he is a new molecule.
+                p1.species = self.reaction_rules[(a,b)]
+                p1.colour = p1.get_particle_color(self.species_count)
+
+                #Update mass, color, etc.
+                total_mass = p1.mass + p2.mass
+                p1.x = (p1.x*p1.mass + p2.x*p2.mass)/total_mass
+                p1.y = (p1.y*p1.mass + p2.y*p2.mass)/total_mass
+                (p1.angle, p1.speed) = addVectors((p1.angle, p1.speed*p1.mass/total_mass), (p2.angle, p2.speed*p2.mass/total_mass))
+                p1.speed *= (p1.elasticity*p2.elasticity)
+                p1.mass += p2.mass
+
+                #Mark p2 for destruction
+                p2.destroy = True
+                
+            
+
     def findParticle(self, (x, y)):
         """ Returns any particle that occupies position x, y """
         
@@ -196,3 +257,31 @@ class Environment:
             if math.hypot(particle.x - x, particle.y - y) <= particle.size:
                 return particle
         return None
+
+    def shrink(self, xamt, yamt):
+        """ Shrinks the universe, and moves particles into shrunken version"""
+        if xamt <= self.width and yamt <= self.height:
+            newx = self.width - xamt
+            newy = self.height - yamt
+            for i in range(newx, self.width):
+                for j in range(newy, self.height):
+                    p = self.findParticle((i,j))
+                    if p:
+                        p.x = newx / 2
+                        p.y = newy / 2
+                        #if p.y - yamt > 0: p.y = p.y - yamt
+
+            self.width = self.width - xamt
+            self.height = self.height - yamt
+        else:
+            print "invalid shrink amount %d %d! Silent return."%(xamt, xamt)
+            print "%d %d"%(self.width, self.height)
+            return
+
+
+
+# class Genus(object):
+#     """Specifies interactions between species, and their specifics"""
+
+
+
