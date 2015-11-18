@@ -62,6 +62,15 @@ def collide(p1, p2):
         p2.x -= math.sin(angle)*overlap
         p2.y += math.cos(angle)*overlap
 
+
+def get_particle_color(species, num_species):
+    mult = .75/num_species
+    h = .5 + mult*species
+    unscaled = colorsys.hsv_to_rgb(h, .5, .5)
+    scaled = (unscaled[0]*255,unscaled[1]*255,unscaled[2]*255)
+    
+    return scaled
+
 class Particle:
     """ A circular object with a velocity, size and mass """
     
@@ -117,17 +126,7 @@ class Particle:
         other.accelerate((theta+ 0.5 * math.pi, force/other.mass))
 
     def get_particle_color(self,num_species):
-        #mult = 360/num_species
-        mult = 1.0/num_species
-        h = .5 + mult*self.species
-        print "----------"
-        print "num_species: %f"%(num_species)
-        print "mult: %f"%(mult)
-        print "H! %f"%(h)
-        unscaled = colorsys.hsv_to_rgb(h, .5, .5)
-
-        return (unscaled[0]*255,unscaled[1]*255,unscaled[2]*255)
-        #return (species*mult,100,species*mult)
+        return get_particle_color(self.species, num_species)
 
 class Environment:
     """ Defines the boundary of a simulation and its properties """

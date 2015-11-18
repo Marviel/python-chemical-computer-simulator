@@ -11,6 +11,7 @@
 import random
 import pygame
 import PyParticles
+import atexit
 
 PARTICLE_SIZE = 10
 SHRINK_STOP_X = 150
@@ -43,6 +44,23 @@ class UniverseScreen:
 def calculateRadius(mass):
     return 0.5 * mass ** (0.5)
 
+def print_at_exit(universe):
+    seen = {}
+    print "EXITING!\n---Final Information---\n   ---Remaining Particles---"
+    for p in universe.particles:
+        if p.species in seen:
+            seen[p.species] += 1
+        else:
+            seen[p.species] = 1
+
+        print "      species: %d, color: %s"%(p.species,str(p.colour))
+
+    print "   ---Stats---"
+    print "      number of species left: %d"%(len(seen))
+    for s in seen:
+        print "      %d of species %d remained"%(seen[s],s)
+    print 'Goodbye!'
+
 (width, height) = (1000, 1000)
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Chemical Computation')
@@ -60,7 +78,10 @@ var_count = 2 #Boolean variables that this function has as input
 #XOR in this case
 #Expects arg to be a list of two booleans, or boolean castable things.
 def f(args): 
-    return bool(args[0]) != bool(args[1])
+    print "f: %s != %s"%(args[0], args[1])
+    a = args[0] == '1'
+    b = args[1] == '1'
+    return bool(a != b)
 
 #Interactions return any particles they destroy.
 def destructive_interaction(a,b):
@@ -69,9 +90,15 @@ def destructive_interaction(a,b):
 #Get the color of a particle, given:
 #  i: index of the particle in an array...
 #  total_count: number of types of particle
-def get_particle_color(species, total_count):
-    mult = 255/total_count
-    return (species*mult,100,species*mult)
+# def get_particle_color(species, total_count):
+#     mult = 255/total_count
+#     return (species*mult,100,species*mult)
+
+print "color test!!!!"
+for i in range(4):
+    print("species: %d -> color %s")%(i, str(PyParticles.get_particle_color(i,6)))
+    print("species: %d -> color %s")%(-i, str(PyParticles.get_particle_color(-i,6)))
+print "------end color test."
 
 # Set of Reaction Rules {(molecule_type_id,....molecule_type_id): output, ...}
 R = {}
@@ -99,9 +126,11 @@ M.append(-var_count)
 # (b) For each input case, create a logical reaction.
 truth_table = []
 for i in range(2**var_count):
+    print "----"
     binarr = list('{0:02b}'.format(i)) #The binary representation of the number, with each digit split into an array
     result = f(binarr)
     truth_table.append(binarr + [result])
+    
     print binarr
     # i Lefthand side (reactants) corresponds to the input of Fi.
     # ii Righthand side (products) consists of one molecular species representing the respective boolean output of Fi.
@@ -109,51 +138,75 @@ for i in range(2**var_count):
     # //based on the binary digit in binarray at the same location.
     reactants = tuple([x+1 if binarr[x] == '1' else -(x+1) for x in range(var_count)])
     print reactants
+    print result
+    #print reactants
     R[reactants] = var_count+1 if result else -(var_count + 1)
 
-print R
 universe.reaction_rules = R
 universe.species_count = 2*(var_count + 1)
+print("# Species: %d"%(universe.species_count))
+print("Reactions------")
+print(R)
 
 
-background = pygame.Surface(screen.get_size())
-background = background.convert()
-background.fill((250, 250, 250))
-pygame.font.init()
-font = pygame.font.Font(None, 36)
-text = font.render("Hello There", 1, (10, 10, 10))
-textpos = text.get_rect()
-textpos.centerx = background.get_rect().centerx
-background.blit(text, textpos)
+#Attempt and fail to print legend
+# background = pygame.Surface(screen.get_size())
+# background = background.convert()
+# background.fill((250, 250, 250))
+# pygame.font.init()
+# font = pygame.font.Font(None, 36)
+# text = font.render("Hello There", 1, (10, 10, 10))
+# textpos = text.get_rect()
+# textpos.centerx = background.get_rect().centerx
+# background.blit(text, textpos)
+# # Blit everything to the screen
+# screen.blit(background, (0, 0))
 
-# Blit everything to the screen
-screen.blit(background, (0, 0))
 
+input_values = [True,True] #Boolean input values to function
 
-input_values = [1,1]
+for m in M:
+    tupe = PyParticles.get_particle_color(m,universe.species_count)
+    print "val: %d -> (%d,%d,%d)"%(m, tupe[0],tupe[1],tupe[2])
 
+count = 0
 #Add first particles to universe.
-for p in range(300):
-    particle_mass = random.randint(1,4)
-    species = M[p%len(M)] #evenly distributed among all our species
-    # color = get_particle_color(p%len(M), len(M))
-    universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
-    particle = universe.particles[p]
-    particle.species = species
-    color = particle.get_particle_color(2*(var_count + 1))
-    print "color: " + str(color)
-    particle.colour = color
+# for p in range(300):
+#     particle_mass = random.randint(1,4)
+#     species = M[p%len(M)] #evenly distributed among all our species
+#     # color = get_particle_color(p%len(M), len(M))
+#     universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
+#     particle = universe.particles[p]
+#     particle.species = species
+#     color = PyParticles.get_particle_color(species,universe.species_count)
+#     #print "color: " + str(color)
+#     particle.colour = color
+#     count += 1
 
 # Add inflow to universe.
-# for p in range(50):
-#     for i in range(2):
-#         particle_mass = random.randint(1,4)
-#         species = extra_particles[i]
-#         color = get_particle_color(p%len(M), len(M))
-#         universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10, colour=color)
-#         particle = universe.particles[p]
-#         particle.species = species
+for n in range(count,count+300):
+    for i in range(2):
+        particle_mass = random.randint(1,4)
+        species = (i + 1 if input_values[i] else -(i + 1))
+        # print species
+        # color = get_particle_color(p%len(M), len(M))
+        universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
+        particle = universe.particles[n + i]
+        particle.species = species
+        color = PyParticles.get_particle_color(species,universe.species_count)
+        print 'species: %d, num_species: %d -> color: '%(species, universe.species_count) + str(color)
+        #print("color: " + str(color))
+        particle.colour = color
 
+        # particle_mass = random.randint(1,4)
+        
+        # color = get_particle_color(p%len(M), len(M))
+        # universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10, colour=color)
+        # particle = universe.particles[p]
+        # particle.species = species
+
+
+atexit.register(print_at_exit, universe)
 
 
 key_to_function = {
@@ -197,6 +250,7 @@ while running:
             pygame.draw.rect(screen, p.colour, (x, y, 2, 2))
         else:
             pygame.draw.circle(screen, p.colour, (x, y), size, 0)
+        p.speed = 10
     
     #Delete particles from universe
     for p in particles_to_remove:
@@ -208,3 +262,10 @@ while running:
 
     pygame.display.flip()
     clock.tick(80)
+
+
+
+
+
+
+
