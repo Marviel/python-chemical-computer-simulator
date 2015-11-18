@@ -66,7 +66,7 @@ def collide(p1, p2):
 def get_particle_color(species, num_species):
     mult = .75/num_species
     h = .5 + mult*species
-    unscaled = colorsys.hsv_to_rgb(h, .5, .5)
+    unscaled = colorsys.hsv_to_rgb(h, .9, .5)
     scaled = (unscaled[0]*255,unscaled[1]*255,unscaled[2]*255)
     
     return scaled

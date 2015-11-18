@@ -14,10 +14,13 @@ import PyParticles
 import atexit
 
 PARTICLE_SIZE = 10
+WIDTH = 1000
+HEIGHT = 1000
 SHRINK_STOP_X = 150
 SHRINK_STOP_Y = 150
 SHRINK_RATE_X = 1
 SHRINK_RATE_Y = 1
+INPUT_VALUES = [False,False]
 
 class UniverseScreen:
     def __init__ (self, width, height):
@@ -61,7 +64,7 @@ def print_at_exit(universe):
         print "      %d of species %d remained"%(seen[s],s)
     print 'Goodbye!'
 
-(width, height) = (1000, 1000)
+(width, height) = (WIDTH, HEIGHT)
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Chemical Computation')
 
@@ -163,47 +166,27 @@ print(R)
 # screen.blit(background, (0, 0))
 
 
-input_values = [True,True] #Boolean input values to function
+input_values = INPUT_VALUES #Boolean input values to function
 
 for m in M:
     tupe = PyParticles.get_particle_color(m,universe.species_count)
     print "val: %d -> (%d,%d,%d)"%(m, tupe[0],tupe[1],tupe[2])
 
-count = 0
+particle_count = 0
 #Add first particles to universe.
-# for p in range(300):
-#     particle_mass = random.randint(1,4)
-#     species = M[p%len(M)] #evenly distributed among all our species
-#     # color = get_particle_color(p%len(M), len(M))
-#     universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
-#     particle = universe.particles[p]
-#     particle.species = species
-#     color = PyParticles.get_particle_color(species,universe.species_count)
-#     #print "color: " + str(color)
-#     particle.colour = color
-#     count += 1
+for p in range(200):
+    particle_mass = random.randint(1,4)
+    species = M[p%(len(M)-2)] #evenly distributed among all our species, except output
+    # color = get_particle_color(p%len(M), len(M))
+    universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
+    particle = universe.particles[p]
+    particle.species = species
+    color = PyParticles.get_particle_color(species,universe.species_count)
+    #print "color: " + str(color)
+    particle.colour = color
+    particle_count += 1
 
-# Add inflow to universe.
-for n in range(count,count+300):
-    for i in range(2):
-        particle_mass = random.randint(1,4)
-        species = (i + 1 if input_values[i] else -(i + 1))
-        # print species
-        # color = get_particle_color(p%len(M), len(M))
-        universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
-        particle = universe.particles[n + i]
-        particle.species = species
-        color = PyParticles.get_particle_color(species,universe.species_count)
-        print 'species: %d, num_species: %d -> color: '%(species, universe.species_count) + str(color)
-        #print("color: " + str(color))
-        particle.colour = color
 
-        # particle_mass = random.randint(1,4)
-        
-        # color = get_particle_color(p%len(M), len(M))
-        # universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10, colour=color)
-        # particle = universe.particles[p]
-        # particle.species = species
 
 
 atexit.register(print_at_exit, universe)
@@ -222,6 +205,7 @@ clock = pygame.time.Clock()
 paused = False
 running = True
 while running:
+    t = pygame.time.get_ticks()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -259,6 +243,45 @@ while running:
 
     if universe.width > SHRINK_STOP_X and universe.height > SHRINK_STOP_Y:
         universe.shrink(SHRINK_RATE_X,SHRINK_RATE_Y)
+
+    if t > 2000 and t < 2100:
+        # Add inflow to universe.
+        i = 0
+        for n in range(len(universe.particles),len(universe.particles)+50):
+            particle_mass = random.randint(1,4)
+            species = (i + 1 if input_values[i] else -(i + 1))
+            # print species
+            # color = get_particle_color(p%len(M), len(M))
+            #print "parts: %d"%(len(universe.particles))
+            universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
+            # print "parts after: %d"%(len(universe.particles))
+            # print "n: %d i: %d"%(n, i)
+            particle = universe.particles[n]
+            particle.species = species
+            color = PyParticles.get_particle_color(species,universe.species_count)
+            print 'species: %d, num_species: %d -> color: '%(species, universe.species_count) + str(color)
+            particle.colour = color
+            particle_count += 1
+    if t > 4000 and t < 4100:
+        # Add inflow to universe.
+        i = 1
+        for n in range(len(universe.particles),len(universe.particles)+50):
+            particle_mass = random.randint(1,4)
+            species = (i + 1 if input_values[i] else -(i + 1))
+            # print species
+            # color = get_particle_color(p%len(M), len(M))
+            # color = get_particle_color(p%len(M), len(M))
+            #print "parts: %d"%(len(universe.particles))
+            universe.addParticles(mass=particle_mass, size=PARTICLE_SIZE, speed=10)#, colour=color)
+            # print "parts after: %d"%(len(universe.particles))
+            # print "n: %d i: %d"%(n, i)
+            particle = universe.particles[n]
+            particle.species = species
+            color = PyParticles.get_particle_color(species,universe.species_count)
+            print 'species: %d, num_species: %d -> color: '%(species, universe.species_count) + str(color)
+            particle.colour = color
+            particle_count += 1
+
 
     pygame.display.flip()
     clock.tick(80)
